@@ -6,13 +6,12 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
-import android.os.Message;
+import android.graphics.Bitmap;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.facebook.AccessToken;
@@ -32,15 +31,17 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Arrays;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class MainActivity extends AppCompatActivity {
 
     CallbackManager callbackManager;
-    TextView  txtEmail,txtBithday,txtFriends;
+    TextView  txtUsername, txtEmail, txtBirthday,txtFriends, txtGender;
     ProgressDialog mDialog;
-    ImageView imgAvatar;
+    CircleImageView imgAvatar;
+    Bitmap imageBitmap;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -53,13 +54,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         callbackManager= CallbackManager.Factory.create();
-        txtBithday= (TextView)findViewById(R.id.txtBirthday);
-        txtEmail= (TextView)findViewById(R.id.txtEmail);
-        txtFriends= (TextView)findViewById(R.id.txtFriends);
-        imgAvatar = (ImageView)findViewById(R.id.avatar);
-        LoginButton loginButton = (LoginButton)findViewById(R.id.login_button);
-        loginButton.setReadPermissions(Arrays.asList("public_profile","email","user_birthday","user_friends"));
+        
+        txtBirthday = findViewById(R.id.profile_birthday);
+        txtEmail= findViewById(R.id.profile_email);
+        txtFriends= findViewById(R.id.profile_friends);
+        imgAvatar = findViewById(R.id.profile_avatar);
+        txtUsername = findViewById(R.id.profile_username);
+        txtGender = findViewById(R.id.profile_gender);
+
+        LoginButton loginButton = findViewById(R.id.login_button);
+        loginButton.setReadPermissions(Arrays.asList("public_profile","email","user_birthday","user_friends", "user_gender"));
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
@@ -76,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
                 Bundle parameters = new Bundle();
-                parameters.putString("fields","id,email,birthday,friends");
+                parameters.putString("fields","id,name,gender,picture,email,birthday,friends");
                 request.setParameters(parameters);
                 request.executeAsync();
                 }
@@ -101,14 +107,29 @@ public class MainActivity extends AppCompatActivity {
 
     private void getData(JSONObject object) {
         try{
-            URL profile_picture= new URL("https://graph.facebook.com/"+object.getString("id")+"picture?width=250&height=250");
-            Picasso.with(this).load(profile_picture.toString()).into(imgAvatar);
-            txtEmail.setText(object.getString("email"));
-            txtBithday.setText(object.getString("birthday"));
-            txtFriends.setText(object.getString("Friends"+object.getJSONObject("friends").getJSONObject("summary").getJSONObject("total_count")));
+            String profile_picture= "https://graph.facebook.com/"+object.getString("id")+"/picture?type=large";
 
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+            //InputStream in = null;
+            //try {
+            //    in = (InputStream) profile_picture.getContent();
+            //    imageBitmap = BitmapFactory.decodeStream(in);
+            //    imgAvatar.setImageBitmap(imageBitmap);
+            //} catch (IOException e) {
+            //    e.printStackTrace();
+            //}
+
+
+            Picasso.with(this).load(profile_picture).into(imgAvatar);
+            txtUsername.setText(object.getString("name"));
+            txtEmail.setText("Email: "+object.getString("email"));
+            txtBirthday.setText("Birthday: "+object.getString("birthday"));
+            txtGender.setText("Gender: "+object.getString("gender"));
+
+            String count = "Friends: "+object.getJSONObject("friends").getJSONObject("summary").getString("total_count");
+            txtFriends.setText(count);
+
+        //} catch (MalformedURLException e) {
+        //    e.printStackTrace();
         } catch (JSONException e) {
             e.printStackTrace();
         }
